@@ -5,10 +5,10 @@
 **Subtítulo:** Seguimiento y Análisis del Comportamiento de Agentes
 
 **Objetivos:**
-- Implementar trazabilidad completa de agentes
-- Analizar logs para debugging y auditoría
-- Establecer patrones de seguimiento de decisiones
-- Crear sistemas de análisis de comportamiento
+- Abrir una petición en árbol (`trace_id` + etapas)
+- Separar esa petición de la conversación (`thread_id`)
+- Leer tasa de éxito y la etapa más lenta en `AnalizadorTrazas`
+- Reconocer un ataque como un span que corta el árbol (puente a IL3.3)
 
 ---
 
@@ -57,219 +57,79 @@ AnalizadorTrazas.resumir(historial_trazas)  # tasa de exito, etapa mas lenta
 
 ---
 
-## Slide 4: Elementos de Trazabilidad Avanzada
-**Título:** Componentes de un Sistema de Tracing Completo
+## Slide 4: Tres identificadores
+**Título:** Petición, conversación, etapa
 
-**1. Identificación Única:**
-```python
-import uuid
-trace_id = str(uuid.uuid4())
-logging.info(f"[{trace_id}] Iniciando proceso")
-```
+| Nombre | Qué agrupa | De dónde sale |
+|---|---|---|
+| `trace_id` | Una petición, de la entrada a la salida | `uuid` corto en `1-traceability_analysis.py` |
+| `thread_id` | La conversación, varias peticiones | Memoria de IL2.2 (`InMemorySaver`) |
+| Etapa / span | Un paso dentro de la petición | `validacion_entrada`, `clasificacion_intencion`, `generacion_respuesta` |
 
-**2. Context Correlation:**
-```python
-def trace_decision(self, trace_id, input_data, decision, reasoning):
-    logging.info({
-        "trace_id": trace_id,
-        "timestamp": time.time(),
-        "input": input_data,
-        "decision": decision,
-        "reasoning": reasoning,
-        "agent_version": "1.0"
-    })
-```
-
-**3. Decision Trail:**
-- Registrar cada paso del razonamiento
-- Guardar inputs utilizados para decisiones
-- Documentar fuentes de información
-- Tracking de llamadas a herramientas externas
+En el grafo de RA2 la etapa es un nodo: `model`, `tools`, supervisor, especialista.
+LangSmith dibuja ese árbol si hay key. Este script lo imprime en JSON para
+leerlo sin cuenta.
 
 ---
 
-## Slide 5: Análisis de Logs Estructurados
-**Título:** Procesamiento Inteligente de Trazas
+## Slide 5: Qué calcula el analizador
+**Título:** Tres preguntas, un método
 
-**Logs estructurados en JSON:**
-```python
-import json
-import logging
+`AnalizadorTrazas.resumir(historial)` responde:
 
-class StructuredLogger:
-    def log_interaction(self, user_id, query, response, metadata):
-        log_entry = {
-            "timestamp": time.time(),
-            "user_id": user_id,
-            "query": query,
-            "response": response,
-            "response_time": metadata.get("duration"),
-            "tokens_used": metadata.get("tokens"),
-            "success": metadata.get("success", True)
-        }
-        logging.info(json.dumps(log_entry))
-```
+1. **¿Cuántas peticiones terminaron bien?** Tasa de éxito.
+2. **¿Cuánto duró cada etapa?** Promedio por nombre de span.
+3. **¿Dónde se fue el tiempo?** La etapa más lenta.
 
-**Análisis automatizado:**
-```python
-def analyze_logs(log_file):
-    patterns = {
-        "errors": 0,
-        "avg_response_time": 0,
-        "popular_queries": {},
-        "user_patterns": {}
-    }
-    # Procesamiento de logs para insights
-    return patterns
+Eso es el diagnóstico. El notebook agrega el árbol padre/hijo y marca
+outliers de duración. El pytest `tests/ra3/test_observabilidad.py` fija
+el caso sin azar: una traza con error conserva el `trace_id` en el JSON.
+
+```bash
+uv run python RA3/IL3.2/1-traceability_analysis.py
 ```
 
 ---
 
-## Slide 6: Herramientas de Análisis
-**Título:** Stack de Trazabilidad para Agentes IA
+## Slide 6: El ataque es un span
+**Título:** Puente directo a IL3.3
 
-**Log Analysis Tools:**
-- **ELK Stack:** Elasticsearch, Logstash, Kibana
-- **Fluentd:** Recolección y procesamiento de logs
-- **Grafana Loki:** Log aggregation system
+Una consulta sana:
 
-**Distributed Tracing:**
-- **OpenTelemetry:** Standard para distributed tracing
-- **Jaeger:** End-to-end distributed tracing
-- **Zipkin:** Distributed tracing system
-
-**AI-Specific Tools:**
-- **LangSmith:** Trazas de LangGraph / `create_agent` (nodos, tools, `thread_id`). No es “solo LangChain clásico”.
-- **Weights & Biases:** Experiment tracking
-- **MLflow:** ML lifecycle management
-
-**Custom Analytics:**
-```python
-class AgentAnalytics:
-    def analyze_performance_trends(self):
-        # Análisis de tendencias de performance
-        pass
-    
-    def detect_anomalies(self):
-        # Detección de comportamientos anómalos
-        pass
-    
-    def generate_insights(self):
-        # Generación de insights automáticos
-        pass
+```text
+trace_id abc
+├── validacion_entrada        ok
+├── clasificacion_intencion   ok
+└── generacion_respuesta      ok     ← aquí se gastan los tokens
 ```
 
----
+"Ignora las instrucciones anteriores":
 
-## Slide 7: Compliance y Auditoría
-**Título:** Trazabilidad para Regulaciones y Governance
-
-**Requisitos de compliance:**
-- **Chile — Ley 19.628 / 21.719:** datos personales; el `thread_id` guarda conversación
-- **GDPR:** Right to explanation en decisiones automatizadas (si operas en UE)
-- **AI Act:** Transparencia en sistemas de alto riesgo
-- **SOX:** Trazabilidad financiera
-- **HIPAA:** Auditoría en sistemas médicos
-
-**Implementación para auditoría:**
-```python
-class AuditableAgent:
-    def __init__(self):
-        self.audit_trail = []
-    
-    def make_decision(self, input_data):
-        decision_context = {
-            "timestamp": datetime.now().isoformat(),
-            "input_hash": hashlib.sha256(str(input_data).encode()).hexdigest(),
-            "model_version": self.model_version,
-            "decision_factors": self.get_decision_factors(input_data),
-            "confidence_score": self.calculate_confidence(),
-            "human_review_required": self.needs_human_review()
-        }
-        
-        self.audit_trail.append(decision_context)
-        return self.process_decision(input_data)
+```text
+trace_id def
+└── validacion_entrada        error  ← se corta
+    (no hay generacion_respuesta)
 ```
 
----
+Un correo en el mensaje sigue el árbol sano, pero el texto guardado en el
+log ya es `CORREO_ELECTRONICO_REDACTADO`. La traza de auditoría no es un
+segundo sistema: es este JSON, con el dato personal fuera.
 
-## Slide 8: Performance y Escalabilidad
-**Título:** Trazabilidad Eficiente en Sistemas de Alto Volumen
-
-**Optimizaciones de logging:**
-```python
-# Async logging para no bloquear
-import asyncio
-import aiofiles
-
-class AsyncLogger:
-    async def log_async(self, message):
-        async with aiofiles.open('agent.log', 'a') as f:
-            await f.write(f"{message}\n")
-
-# Sampling para alto volumen
-class SampledTracer:
-    def __init__(self, sample_rate=0.1):
-        self.sample_rate = sample_rate
-    
-    def should_trace(self):
-        return random.random() < self.sample_rate
-```
-
-**Log rotation y retention:**
-- Rotar logs por tamaño/tiempo
-- Retention policies por compliance
-- Compresión de logs históricos
-- Archival a cold storage
+En Chile eso conversa con la Ley 19.628 y la Ley 21.719: el `thread_id`
+guarda conversación, así que guarda datos personales. Por eso el hilo no
+se loguea crudo.
 
 ---
 
-## Slide 9: Próximos Pasos hacia IL3.3
-**Título:** Evolución hacia Seguridad y Ética
+## Slide 7: Cierre
+**Título:** Qué tiene que poder señalar el estudiante
 
-**Preparación para IL3.3:**
-- Trazabilidad completa implementada
-- Logs estructurados y analizables
-- Foundation para auditoría
-- Compliance básico establecido
+1. Una traza es un árbol, no un párrafo de log.
+2. `trace_id` ≠ `thread_id`.
+3. La etapa más lenta y la etapa en error son hallazgos distintos.
+4. Mañana (IL3.3) el hallazgo de seguridad es: `validacion_entrada` en error
+   y el modelo sin llamarse.
+5. La red, el HTTPS y el secreto de la API son IL3.5. Todavía no.
 
-**IL3.3 - Seguridad y Ética:**
-- Security logging y monitoring
-- Ethical decision tracking
-- Privacy-preserving tracing
-- Bias detection en logs
-
-**Continuidad del proyecto:**
-- Observabilidad (IL3.1) + Trazabilidad (IL3.2) = Base sólida
-- Preparación para security monitoring
-- Foundation para ethical AI governance
-- Compliance readiness
-
----
-
-## Slide 10: Resumen Ejecutivo
-**Título:** Conceptos Clave del Módulo IL3.2
-
-**Fundamentos establecidos:**
-1. **Trazas estructuradas** en JSON, no texto libre
-2. **Trazabilidad de decisiones** con `trace_id` y spans jerárquicos
-3. **Análisis automatizado** de patrones de comportamiento
-4. **Foundation para compliance** y auditoría
-
-**Implementación práctica:**
-- Script: agente que emite trazas con etapas y las resume (`AnalizadorTrazas`)
-- Notebook: spans padre/hijo, vista de cascada y árbol de trazas
-- Detección de anomalías por z-score y de cuellos de botella
-- Base para herramientas avanzadas (OpenTelemetry, Jaeger, LangSmith)
-
-**Valor organizacional:**
-- Transparency en decisiones de IA
-- Compliance con regulaciones
-- Debugging eficiente de problemas
-- Insights para optimización continua
-
-**Preparación para IL3.3:**
-- Trazabilidad como foundation de seguridad
-- Logs para detección de anomalías
-- Audit trails para governance
-- Base para ethical AI monitoring
+OpenTelemetry es el nombre del estándar de estos spans. No se instala un
+Jaeger ni un ELK en el taller: el árbol ya está en el script.

@@ -1,42 +1,39 @@
 # Presentación IL3.1 - Herramientas de Observabilidad y Métricas
 
+Guion de clase. El detalle del orden de toda RA3 está en `RA3/0-puente-ra2.md`.
+
 ## Slide 1: Título y Objetivos
-**Título:** IL3.1 - Herramientas de Observabilidad y Métricas  
-**Subtítulo:** Monitoreo y Medición de Agentes de IA
+**Título:** IL3.1 - Herramientas de Observabilidad y Métricas
+**Subtítulo:** Ver la llamada antes de defenderla
 
 **Objetivos:**
-- Implementar logging básico en agentes
-- Medir métricas de rendimiento clave (ms, tokens, errores)
-- Registrar eventos importantes para debugging
-- Mapear `trace_id` ↔ `thread_id` del grafo de RA2
+- Registrar cada interacción con hora y nivel (log)
+- Medir latencia, tokens y tasa de error de esa llamada
+- Dejar nombrado el `trace_id` que IL3.2 va a abrir en árbol
+- Distinguir este tablero del de `/metrics` (abusos), que se usa en IL3.5
 
 ---
 
-## Slide 2: ¿Por qué Observabilidad?
-**Título:** Importancia del Monitoreo en Agentes IA
+## Slide 2: Por qué se observa
+**Título:** Sin números, el agente es una caja
 
-**Problemas sin observabilidad:**
-- Agentes "caja negra" sin visibilidad interna
-- Dificultad para detectar fallos o degradación
-- Imposible optimizar sin datos de performance
-- Debug reactivo en lugar de proactivo
+**Lo que pasa si no mides:**
+- Un `429` y un timeout se ven igual: "no respondió"
+- La factura de tokens aparece cuando ya se acabó el día (200.000 en Groq free)
+- Un bloqueo de seguridad y un fallo del modelo se confunden
 
-**Beneficios del monitoreo:**
-- **Detección temprana** de problemas
-- **Optimización** basada en datos reales
-- **Debugging** eficiente con logs estructurados
-- **Confiabilidad** mejorada del sistema
+**Lo que esta sesión deja en la mano:**
+- Un log por entrada y por salida
+- Un JSON con promedio, máximo, mínimo, tokens y `%` de error
+- La frase que cierra la clase: *esto mide la llamada; el ataque se cuenta en otro tablero*
 
 ---
 
-## Slide 3: Observabilidad Básica - Implementación
-**Título:** Script 1 - Logging y Métricas Simples
+## Slide 3: El script que se ejecuta
+**Título:** `1-observability_tools.py` — simulación, cero cuota
 
-**Implementación práctica** (`1-observability_tools.py`, simulación sin llamar al modelo):
 ```python
 class AgenteObservable:
-    """Agente simulado que registra cada interaccion con metricas."""
-
     def procesar(self, mensaje: str) -> str:
         self.logger.info(f"Entrada: {mensaje!r}")
         inicio = time.perf_counter()
@@ -47,174 +44,97 @@ class AgenteObservable:
         return respuesta
 ```
 
-**Métricas capturadas por `RecolectorMetricas.resumen()`:**
-- **`total_peticiones`:** Volumen de uso
-- **`tiempo_promedio_ms` / `maximo` / `minimo`:** Performance del agente
-- **`total_tokens`:** Consumo (base para estimar costo)
-- **`tasa_errores_pct`:** Fiabilidad
-- **Logs de entrada/salida con timestamp:** Trazabilidad completa
+**Qué decir mientras corre:**
+- El `sleep` y el 15 % de error son teatro. El contrato (latencia, tokens, éxito) es el de verdad.
+- `RecolectorMetricas.resumen()` es el tablero de **calidad de la llamada**.
+- La misma aritmética, sin azar, la fija `tests/ra3/test_observabilidad.py`.
 
----
-
-## Slide 4: Tipos de Métricas Clave
-**Título:** Qué Medir en Agentes IA
-
-**1. Métricas de Performance:**
-- Tiempo de respuesta
-- Throughput (mensajes/segundo)
-- Latencia de herramientas externas
-- Uso de recursos (CPU, memoria)
-
-**2. Métricas de Calidad:**
-- Tasa de éxito de tareas
-- Precisión de respuestas
-- Satisfacción del usuario
-- Errores y excepciones
-
-**3. Métricas de Negocio:**
-- Volumen de interacciones
-- Tipos de consultas
-- Patrones de uso
-- ROI de automatización
-
----
-
-## Slide 5: Herramientas y Frameworks
-**Título:** Stack de Observabilidad para Agentes
-
-**Logging:**
-- **Python logging:** Built-in, configuración simple
-- **Structlog:** Logs estructurados en JSON
-- **Loguru:** API moderna y simple
-
-**Métricas:**
-- **Prometheus:** Métricas de sistemas
-- **Grafana:** Dashboards y visualización
-- **Custom metrics:** Contadores y timers
-
-**Distributed Tracing:**
-- **OpenTelemetry:** Standard para tracing
-- **Jaeger:** Distributed tracing system
-- **LangSmith:** Trazas de LangGraph / `create_agent` (nodos, tools, `thread_id`)
-
-**Alerting:**
-- **Prometheus AlertManager:** Alertas automáticas
-- **PagerDuty:** Gestión de incidentes
-- **Custom webhooks:** Notificaciones específicas
-
----
-
-## Slide 6: Mejores Prácticas
-**Título:** Patrones de Observabilidad Efectiva
-
-**Logging estructurado:**
-```python
-import structlog
-
-logger = structlog.get_logger()
-logger.info("agent_interaction", 
-           agent_id="agent_001",
-           user_input=message,
-           response_time=duration,
-           success=True)
+```bash
+uv run python RA3/IL3.1/1-observability_tools.py
+uv run pytest tests/ra3/test_observabilidad.py -q
 ```
 
-**Métricas consistentes:**
-- Usar nombres estándar para métricas
-- Incluir labels relevantes (agent_id, user_type)
-- Establecer umbrales de alerta
-- Documentar significado de cada métrica
+---
 
-**Correlación de eventos:**
-- `trace_id` = una petición; `thread_id` (IL2.2) = la conversación
-- En LangSmith verás ambos: spans por nodo (`model`, `tools`, supervisor)
-- Correlacionar logs con métricas
-- Mantener contexto entre llamadas
+## Slide 4: Tres señales
+**Título:** Log, métrica, traza — y en qué archivo vive cada una
 
-**Cierre opcional de clase:** `3-observar-grafo.py` (1–2 llamadas Groq).
+| Señal | Pregunta que responde | En este curso |
+|---|---|---|
+| **Log** | ¿Qué pasó, a qué hora? | Líneas `Entrada` / `Salida` / `Error simulado` del script |
+| **Métrica** | ¿Cómo viene el conjunto? | `resumen()`: promedio, máximo, mínimo, tokens, tasa de error |
+| **Traza** | ¿Por qué etapas pasó *esta* petición? | IL3.2. Aquí solo se anuncia |
+
+El notebook `2-observability-practice.ipynb` mide **una** llamada del SDK crudo
+(13 llamadas reales a `openai/gpt-oss-20b`). El grafo de RA2 tiene varios nodos;
+por eso el cierre opcional es `3-observar-grafo.py` (`create_agent` + `thread_id`,
+1–2 llamadas).
 
 ---
 
-## Slide 7: Implementación en Producción
-**Título:** De Prototipo a Sistema Monitoreado
+## Slide 5: Dos tableros, no uno
+**Título:** Calidad de la llamada y abusos del sistema
 
-**Configuración por ambiente:**
-```python
-# development
-logging.basicConfig(level=logging.DEBUG)
+**Tablero A — esta sesión** (`RecolectorMetricas`):
+- `tiempo_promedio_ms`, `tiempo_maximo_ms`, `tiempo_minimo_ms`
+- `total_tokens`
+- `tasa_errores_pct`
+- `total_peticiones`
 
-# production  
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[
-        logging.FileHandler('/var/log/agent.log'),
-        logging.StreamHandler()
-    ]
-)
+**Tablero B — la API, se muestra en IL3.5** (`GET /metrics`):
+- `total_requests`
+- `bloqueados`
+- `errores`
+
+El tablero B no trae latencia ni tokens. Sirve para señalar en vivo que una
+inyección subió `bloqueados`. Decirlo ahora evita que en IL3.5 parezca que
+"faltan métricas".
+
+---
+
+## Slide 6: LangSmith, y lo que no se instala
+**Título:** La misma traza, en la nube, si hay key
+
+LangSmith (ya visto en IL1.4) dibuja nodos, tools y `thread_id` del grafo
+cuando `LANGSMITH_TRACING="true"` y hay `LANGSMITH_API_KEY`.
+
+Sin key, el tracing se deja en `"false"`. Un `401` no es un fallo del agente.
+
+El programa nombra también Langfuse y Arize. Son de la misma familia
+(traza de una app con LLM). Este curso no los instala: la práctica se hace
+con el log, el JSON y, si hay cuenta, LangSmith sobre LangGraph.
+
+OpenTelemetry es el nombre del estándar de spans. Jaeger, Prometheus y
+Grafana leen ese estándar en un equipo de plataforma. No entran en el taller.
+
+---
+
+## Slide 7: Cierre de la sesión
+**Título:** Qué tiene que poder decir un estudiante al salir
+
+1. Un log dice el evento; una métrica resume muchos eventos; una traza abre una petición.
+2. El JSON de IL3.1 responde si la llamada está sana.
+3. `/metrics` va a responder si alguien fue bloqueado. Todavía no se abre.
+4. `trace_id` será una petición; `thread_id` (IL2.2) será la conversación. Eso es IL3.2.
+
+**Si queda cuota:** `uv run python RA3/IL3.1/3-observar-grafo.py`.
+**Si no queda:** el script y el pytest alcanzan. El notebook puede esperar.
+
+---
+
+## Slide 8: Hacia IL3.2
+**Título:** El siguiente corte es el árbol
+
+Hoy la llamada es un número (ms, tokens, éxito o error).
+Mañana esa misma llamada se parte en etapas:
+
+```text
+trace_id
+├── validacion_entrada
+├── clasificacion_intencion
+└── generacion_respuesta
 ```
 
-**Dashboards esenciales:**
-- Health status del agente
-- Response time percentiles
-- Error rate y tipos de errores
-- Usage patterns y trends
-
-**Alertas críticas:**
-- Response time > umbral
-- Error rate > 5%
-- Agent down/unreachable
-- Resource usage > 80%
-
----
-
-## Slide 8: Próximos Pasos hacia IL3.2
-**Título:** Evolución hacia Trazabilidad Completa
-
-**Preparación para IL3.2:**
-- Foundation sólida en métricas básicas
-- Logs estructurados implementados
-- Comprensión de observabilidad
-- Base para análisis de trazas complejas
-
-**IL3.2 - Análisis de Trazabilidad:**
-- Tracing distribuido
-- Análisis de logs avanzado
-- Correlación de eventos
-- Performance profiling
-
-**Continuidad del proyecto:**
-- Observabilidad como pilar de calidad
-- Métricas para optimización continua
-- Foundation para sistemas escalables
-- Preparación para auditoría y compliance
-
----
-
-## Slide 9: Resumen Ejecutivo
-**Título:** Conceptos Clave del Módulo IL3.1
-
-**Fundamentos establecidos:**
-1. **Logging básico** con Python logging
-2. **Métricas de performance** (tiempo, contador)
-3. **Trazabilidad** de entrada y salida
-4. **Foundation** para observabilidad avanzada
-
-**Implementación práctica:**
-- Agente con logging estructurado integrado (`1-observability_tools.py`)
-- Medición de tiempo de respuesta, tokens y tasa de errores
-- Reporte agregado en JSON con `RecolectorMetricas.resumen()`
-- Notebook: dashboard con matplotlib y sistema de alertas por umbrales
-
-**Valor organizacional:**
-- Visibilidad en operaciones de agentes
-- Base para optimización de performance
-- Detección proactiva de problemas
-- Foundation para escalabilidad
-
-**Preparación para RA3 completo:**
-- IL3.1: Observabilidad básica ✓
-- IL3.2: Trazabilidad avanzada
-- IL3.3: Seguridad y ética  
-- IL3.4: Escalabilidad y sostenibilidad
-- IL3.5: Ciberseguridad y despliegue en AWS
+Cuando alguien escriba "ignora las instrucciones anteriores", la primera etapa
+tiene que quedar en error y la tercera no debe correr. Eso ya es IL3.3.
+La red (HTTPS, secretos, Security Group) es IL3.5.

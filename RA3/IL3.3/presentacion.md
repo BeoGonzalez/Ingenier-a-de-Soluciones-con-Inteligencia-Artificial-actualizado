@@ -313,141 +313,75 @@ class RateLimiter:
 
 ---
 
-## Slide 8: Governance y Compliance
-**Título:** Marcos Regulatorios y Estándares
+## Slide 8: El ataque se ve en la traza
+**Título:** Misma petición que IL3.2, ahora con un motivo
 
-**Regulaciones clave:**
-- **EU AI Act:** Clasificación de riesgo y requisitos
-- **GDPR:** Protección de datos y privacidad
-- **CCPA:** Derechos de consumidores en California
-- **SOC 2:** Controles de seguridad organizacional
+Cuando `validar_entrada` rechaza el texto, el backend hace tres cosas
+(`deploy/backend/app.py`):
 
-**Implementación de compliance:**
-```python
-class ComplianceManager:
-    def __init__(self):
-        self.audit_log = []
-        self.consent_records = {}
-        
-    def log_decision(self, user_id, decision, reasoning, confidence):
-        """GDPR Article 22 - Right to explanation"""
-        self.audit_log.append({
-            "timestamp": time.time(),
-            "user_id": user_id,
-            "decision": decision,
-            "reasoning": reasoning,
-            "confidence": confidence,
-            "human_review_available": True
-        })
-    
-    def check_consent(self, user_id, purpose):
-        """GDPR Article 6 - Lawfulness of processing"""
-        return self.consent_records.get(user_id, {}).get(purpose, False)
-    
-    def anonymize_data(self, data):
-        """Privacy by design"""
-        # Implementar técnicas de anonimización
-        pass
-```
+1. No llama al modelo.
+2. Responde `bloqueado: true` y un motivo corto.
+3. Suma 1 a `bloqueados` y escribe en el log el **motivo**, no el mensaje crudo.
+
+Un correo que sí pasa el filtro de inyección sale redactado
+(`CORREO_ELECTRONICO_REDACTADO`) en la respuesta y en el log.
+
+Eso es el tablero de abusos. La latencia y los tokens siguen siendo el
+tablero de IL3.1: un bloqueo temprano gasta cero tokens de generación, y
+eso también se puede decir en voz alta.
+
+La auditoría que pide la Ley 21.719 (datos personales en Chile) es este
+registro: hora, motivo, texto ya redactado. No hace falta otra clase
+`ComplianceManager`.
 
 ---
 
-## Slide 9: Monitoring y Detección de Anomalías
-**Título:** Vigilancia Continua de Comportamiento
+## Slide 9: Lo que el filtro deja pasar
+**Título:** Decirlo en la defensa, con los tests al lado
 
-**Security monitoring:**
-```python
-class SecurityMonitor:
-    def __init__(self):
-        self.threat_indicators = []
-        self.behavioral_baseline = {}
-    
-    def detect_anomalies(self, user_id, request_pattern):
-        """Detectar comportamiento anómalo"""
-        baseline = self.behavioral_baseline.get(user_id, {})
-        
-        # Frecuencia inusual de requests
-        if request_pattern['frequency'] > baseline.get('avg_frequency', 0) * 3:
-            return "High frequency anomaly detected"
-        
-        # Patrones de consulta inusuales
-        if request_pattern['complexity'] > baseline.get('avg_complexity', 0) * 2:
-            return "Query complexity anomaly detected"
-        
-        return None
-    
-    def update_threat_intel(self, new_indicators):
-        """Actualizar indicadores de amenaza"""
-        self.threat_indicators.extend(new_indicators)
-```
+El guardrail es una lista de patrones. `tests/deploy/test_guardrails_evasion.py`
+marca como `xfailed` —a propósito— las evasiones que siguen abiertas:
 
-**Ethical monitoring:**
-```python
-class EthicsMonitor:
-    def track_bias_indicators(self, responses_by_demographic):
-        """Monitorear sesgos en respuestas"""
-        bias_metrics = {}
-        
-        for demographic, responses in responses_by_demographic.items():
-            bias_metrics[demographic] = {
-                'avg_sentiment': self.calculate_sentiment(responses),
-                'response_length': self.avg_length(responses),
-                'topics_covered': self.extract_topics(responses)
-            }
-        
-        return self.analyze_bias(bias_metrics)
-```
+- otro idioma
+- base64
+- rot13
+- una paráfrasis
+- la instrucción deletreada
+- el system prompt resumido con otras palabras
+
+Además, el filtro mira lo que teclea el usuario. No mira:
+
+- una instrucción metida en un documento RAG, una página o la salida de una tool
+- un `thread_id` que ya quedó envenenado en un turno anterior
+- una tool con permiso de borrar, pagar o enviar
+
+Esas tres se contienen con mínimo privilegio y con confirmación humana
+antes de la acción irreversible. El regex no las cierra.
+
+Ética (sesgo, transparencia, "no soy una persona") es el otro bloque de
+esta sesión. No es un control de ciberseguridad.
 
 ---
 
-## Slide 10: Próximos Pasos hacia IL3.4
-**Título:** Evolución hacia Escalabilidad y Sostenibilidad
+## Slide 10: Hacia IL3.4 e IL3.5
+**Título:** Dos sesiones distintas después de esta
 
-**Preparación para IL3.4:**
-- Seguridad y ética como foundation
-- Compliance frameworks implementados
-- Monitoring de amenazas establecido
-- Governance structures en su lugar
+**IL3.4** mira el tablero de calidad: 200.000 tokens/día, `GROQ_MODEL_FAST`
+para los bucles, y un nodo nuevo solo si la latencia de IL3.1 lo justifica.
 
-**IL3.4 - Escalabilidad y Sostenibilidad:**
-- Performance optimization con security
-- Sustainable AI practices
-- Green computing para agentes
-- Long-term maintainability
-
-**Proyecto final RA3:**
-- **IL3.1:** Observabilidad ✓
-- **IL3.2:** Trazabilidad ✓  
-- **IL3.3:** Seguridad y ética ✓
-- **IL3.4:** Escalabilidad sostenible
-- **IL3.5:** Ciberseguridad y despliegue en AWS
+**IL3.5** mira la red. La misma inyección de hoy se muestra con `curl`
+contra `localhost:8000`, y después se agregan secretos, HTTPS, contenedor
+no-root y Security Group. `/metrics` queda público en la demo; en un
+despliegue real se cierra.
 
 ---
 
-## Slide 11: Resumen Ejecutivo
-**Título:** Conceptos Clave del Módulo IL3.3
+## Slide 11: Cierre
+**Título:** Qué tiene que poder decir el estudiante
 
-**Fundamentos establecidos:**
-1. **Gestión de secretos**: la API key nunca se imprime ni se versiona
-2. **Input validation** con sanitización segura
-3. **Ethical filtering** para contenido apropiado
-4. **Protection frameworks** contra ataques comunes
-5. **Compliance structures** para regulaciones
-
-**Implementación práctica:**
-- Safe evaluation de expresiones matemáticas
-- Filtros éticos para consultas inapropiadas
-- Frameworks de seguridad modulares
-- Monitoring de anomalías y sesgos
-
-**Valor organizacional:**
-- **Risk mitigation:** Protección contra amenazas
-- **Regulatory compliance:** Cumplimiento legal
-- **Trust building:** Confianza de usuarios
-- **Reputation protection:** Protección de marca
-
-**Preparación para IL3.4:**
-- Security by design establecido
-- Ethical frameworks operativos
-- Foundation para scaling seguro
-- Governance para sostenibilidad
+1. La key no se imprime. Si se filtró, se revoca en console.groq.com/keys.
+2. Inyección directa: span de validación en error, modelo sin llamar, `bloqueados` +1.
+3. Dato personal: redactado en respuesta y en log.
+4. El filtro es evadible. Los seis `xfailed` son la evidencia, no un fallo nuevo.
+5. Tools y memoria se contienen con permisos y con una persona, no con regex.
+6. HTTPS y el Security Group son la clase siguiente.

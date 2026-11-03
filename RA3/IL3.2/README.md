@@ -36,10 +36,20 @@ es el análogo de un **nodo** LangGraph. El `trace_id` identifica *una* petició
 
 ## Conceptos Clave
 
-- **Trazabilidad**: Seguimiento del flujo completo de decisión del agente
-- **Correlación**: Relacionar eventos, prompts y respuestas en una sola traza
-- **Depuración**: Uso de logs para identificar causas de fallos
-- **Auditoría**: Registro permanente de interacciones para revisión posterior
+- **Traza**: una petición. La identifica `trace_id`. Varias trazas del mismo
+  hilo comparten el `thread_id` de IL2.2.
+- **Span / etapa**: un nodo del recorrido (`validacion_entrada`,
+  `clasificacion_intencion`, `generacion_respuesta`). En el grafo de RA2,
+  el análogo es `model`, `tools` o un especialista.
+- **Análisis**: `AnalizadorTrazas` responde tasa de éxito, duración por etapa
+  y cuál fue la más lenta. El JSON conserva el `trace_id`.
+- **Puente a IL3.3**: un ataque directo tiene que dejar `validacion_entrada`
+  en error y no disparar `generacion_respuesta`. El log de esa traza no guarda
+  el correo crudo.
+
+El estándar de la industria para estos spans se llama OpenTelemetry. LangSmith
+lo dibuja si hay key. Este módulo lo arma a mano para poder leer el árbol sin
+cuenta.
 
 ## Cómo Empezar
 

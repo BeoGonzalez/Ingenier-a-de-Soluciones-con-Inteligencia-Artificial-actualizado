@@ -2,11 +2,22 @@
 
 Este módulo cubre las mejores prácticas para proteger tus agentes de IA contra usos malintencionados y garantizar un comportamiento ético y responsable.
 
+**Puente desde la observabilidad:** IL3.1 midió la llamada e IL3.2 la partió en
+etapas. Aquí un ataque tiene que **verse** en esa traza: `validacion_entrada`
+en error, el modelo sin llamarse, y el correo reemplazado por
+`CORREO_ELECTRONICO_REDACTADO`. El contador `bloqueados` de `/metrics` es el
+tablero de abusos; la latencia sigue siendo el otro.
+
 **Puente RA2:** el riesgo no es solo el prompt. Un grafo tiene **tools**, **handoff**
 (`Command`) y **memoria** (`thread_id`). Injection indirecta entra por Wikipedia/MCP;
 un supervisor confundido enruta al especialista equivocado; un hilo envenenado
 condiciona la siguiente consulta. El mínimo privilegio de las tools (IL2.2) pesa más
 que un filtro de regex.
+
+**Dos capas, para no mezclarlas en la defensa:** esta sesión es la seguridad
+**del agente** (qué puede hacer con el texto, las tools y la memoria) y la
+ética (sesgo, transparencia). La ciberseguridad **del sistema** (secretos,
+HTTPS, quién llega al puerto) es IL3.5.
 
 ## Objetivos de Aprendizaje
 

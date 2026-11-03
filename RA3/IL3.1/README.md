@@ -36,10 +36,17 @@ En este módulo aprenderás a agregar logs, métricas y monitoreo a tus agentes 
 
 ## Conceptos Clave
 
-- **Logging**: Registro cronológico de eventos, errores y decisiones del agente
-- **Métricas**: KPIs como tiempo de respuesta, tasa de éxito, tokens utilizados
-- **Trazabilidad**: Capacidad de reconstruir el flujo de decisiones del agente
-- **Monitoreo**: Observación continua del sistema para detectar anomalías
+Tres señales, en este orden. El relato completo de la unidad está en
+[`../0-puente-ra2.md`](../0-puente-ra2.md).
+
+- **Log**: una línea con hora. En el script: `Entrada`, `Salida`, `Error simulado`.
+- **Métrica de la llamada**: el JSON de `RecolectorMetricas.resumen()` — latencia
+  (promedio, máximo, mínimo), tokens y tasa de error. El notebook arma el mismo
+  tablero con matplotlib. `/metrics` de la API es **otro** tablero
+  (`total_requests`, `bloqueados`, `errores`) y se usa en IL3.5.
+- **Traza**: una petición abierta en etapas. Se anuncia aquí y se construye en IL3.2.
+- **LangSmith**: la misma traza del grafo, en la nube, si hay key. Opcional.
+  Langfuse y Arize son de la misma familia; este módulo no los instala.
 
 ## Cómo Empezar
 

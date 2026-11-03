@@ -27,6 +27,16 @@ El ADR de IL2.4 dice *qué* se despliega.
 ## Artefacto desplegable
 El código vive en la carpeta raíz [`deploy/`](../../deploy/README.md).
 
+## Demo en clase, sin AWS
+
+El orden para proyectar está en `presentacion.md` (sección 2): health, una
+inyección, un correo, `/metrics`. En pantalla tienen que verse `bloqueado: true`,
+el correo reemplazado por `CORREO_ELECTRONICO_REDACTADO` y `bloqueados` más alto.
+Después se nombran las evasiones que el filtro deja abiertas.
+
+Los `curl` y cómo levantar la API sin Docker están en
+[`../README.md`](../README.md#demostrarlo-en-casa).
+
 ## Conceptos Clave
 - **Contenedores no-root** y red interna (solo el proxy se expone).
 - **HTTPS** con Caddy + cabeceras de seguridad (HSTS, X-Content-Type-Options).

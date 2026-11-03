@@ -79,11 +79,17 @@ Esto aplica sobre todo antes de **RA1/IL1.3** (RAG), que es donde entran los emb
 - El ADR debe elegir LangGraph (`create_agent` / `StateGraph`) o justificar CrewAI.
   `AgentExecutor` y Swarm no van como arquitectura nueva.
 
-### RA3/IL3.1 — Observabilidad (puente)
-- Lo que se observa es el **grafo** de RA2 (nodos, tools, `thread_id`), no un
-  `AgentExecutor`. LangSmith entra en IL1.4 y se retoma aquí.
-- El notebook usa SDK crudo (13+ llamadas). Cierra con `3-observar-grafo.py`
-  (1–2 llamadas) si queda cuota. Mapa: `RA3/0-puente-ra2.md`.
+### RA3 — Observabilidad y ciberseguridad (relato)
+- El mapa de la unidad está en `RA3/0-puente-ra2.md`. Carpetas iguales;
+  el relato son dos tableros (calidad de la llamada vs. abusos en `/metrics`)
+  y dos capas (qué puede hacer el agente vs. quién llega a la API).
+- Lo que se observa es el **grafo** de RA2 (nodos, tools, `thread_id`).
+  LangSmith entra en IL1.4 y se retoma aquí, y es opcional.
+- El notebook de IL3.1 usa SDK crudo (13+ llamadas). Cierra con
+  `3-observar-grafo.py` (1–2 llamadas) si queda cuota.
+- En IL3.5 la demo de casa es un solo ataque: inyección → `bloqueado`,
+  correo → texto redactado, `/metrics` con `bloqueados` más alto. Después
+  di en voz alta lo que el filtro deja pasar (los `xfailed`).
 - Para mostrarlo **sin cuota**: `uv run python RA3/IL3.1/1-observability_tools.py`
   y `uv run pytest tests/ra3/test_observabilidad.py -q`. El recorrido completo
   está en [RA3/README.md](RA3/README.md#demostrarlo-en-casa).

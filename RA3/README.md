@@ -17,6 +17,22 @@ El enfoque práctico permite que las/los estudiantes implementen sistemas de obs
 - Act 3.3 - Seguridad, Ética y Escalabilidad (IL3.3 e IL3.4)
 - Act 3.4 - Ciberseguridad y Despliegue en AWS (IL3.5)
 
+## Cómo se enseña
+
+El orden de carpetas se queda. El relato está en
+[`0-puente-ra2.md`](0-puente-ra2.md): dos preguntas, dos tableros, dos capas.
+
+1. IL3.1 mide si **la llamada** está sana (latencia, tokens, tasa de error).
+2. IL3.2 arma esa llamada como **árbol** (`trace_id`, etapas = nodos del grafo).
+3. IL3.3 exige que **el ataque** se vea en ese árbol (bloqueo, PII redactada) y
+   separa ética de ciberseguridad.
+4. IL3.4 escala solo lo que el paso 1 ya midió.
+5. IL3.5 mueve la misma petición a la **red**: secretos, HTTPS, quién puede
+   leer `/metrics`.
+
+`/metrics` lleva tres contadores (`total_requests`, `bloqueados`, `errores`).
+El reporte de latencia y tokens es el de IL3.1. Son tableros distintos.
+
 ## Evaluaciones
 
 - Ev For 3 - Quiz Observabilidad y Trazabilidad
