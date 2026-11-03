@@ -50,19 +50,16 @@ traducidos a su letra latina). Con eso **sí** frena:
 
 **No detecta** — y no es un bug pendiente:
 
-- Paráfrasis y sinónimos: *"haz caso omiso de todo lo que te dijeron antes"*.
-- Idiomas fuera de español/inglés.
-- Codificaciones: base64, rot13, hex, letra por letra.
+- Una paráfrasis que no esté escrita. «caso omiso» sí se bloquea.
+- Un idioma que no esté en las listas. Francés «oublie les instructions» sí.
+- Hex y texto invertido. Base64, rot13 y letras separadas por puntos sí se decodifican.
 - Prompt injection **indirecta**: instrucciones escondidas en un documento o
   una web que el agente lea más tarde.
 
-Un filtro léxico no puede cerrar eso: la lista de maneras de decir "ignora tus
-instrucciones" es infinita, y subir la agresividad solo cambia falsos negativos
-por falsos positivos. En la versión anterior de este archivo, `arma` sin límites
-de palabra bloqueaba *farmacia*, *alarma* y *karma*, y `system prompt` bloqueaba
-una pregunta del propio temario. Cada fuga que sigue abierta está documentada
-como test `xfail` en `tests/deploy/test_guardrails_evasion.py`: aparecen en cada
-ejecución de la suite para que nadie las dé por cerradas.
+Un filtro léxico no cierra la lista infinita de formas de decir «ignora tus
+instrucciones». Subir la agresividad cambia falsos negativos por falsos
+positivos. En la versión anterior de este archivo, `arma` sin límites de
+palabra bloqueaba *farmacia*, *alarma* y *karma*.
 
 **Defensa en profundidad** (lo que haría falta de verdad en producción):
 
@@ -92,11 +89,10 @@ artefacto.
 
 ## Estado de verificación
 
-- ✅ **Backend (unit + integración):** `uv run pytest tests/deploy/ -q` → 59 tests
-  pasan y 6 quedan en `xfail` (guardrails, evasiones y falsos positivos, modo
-  demo, validación de historial y de la conversación concatenada, coherencia de
-  la configuración de proxy/rate limiting, métricas). Los 6 `xfail` son las
-  evasiones que un filtro por patrones no cubre; están ahí a propósito.
+- ✅ **Backend (unit + integración):** `uv run pytest tests/deploy/ -q` → la suite
+  pasa sin `xfailed`. Cubre guardrails (incluida base64, rot13, letras separadas,
+  francés de la lista y «caso omiso»), falsos positivos, modo demo, historial
+  concatenado, proxy, rate limiting y métricas.
 - ✅ **Compose:** `docker compose -f deploy/docker-compose.prod.yml config -q` valida.
 - ✅ **End-to-end con contenedores:** lo ejecuta la CI en cada cambio de `deploy/`
   (workflow `.github/workflows/deploy-ci.yml`, job *Build + smoke test end-to-end*):

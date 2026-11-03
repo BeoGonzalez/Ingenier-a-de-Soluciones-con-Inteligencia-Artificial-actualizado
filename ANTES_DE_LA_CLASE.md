@@ -89,7 +89,8 @@ Esto aplica sobre todo antes de **RA1/IL1.3** (RAG), que es donde entran los emb
   `3-observar-grafo.py` (1–2 llamadas) si queda cuota.
 - En IL3.5 la demo de casa es un solo ataque: inyección → `bloqueado`,
   correo → texto redactado, `/metrics` con `bloqueados` más alto. Después
-  di en voz alta lo que el filtro deja pasar (los `xfailed`).
+  di en voz alta lo que el filtro sigue sin ver: inyección indirecta, hex
+  y una paráfrasis que no esté escrita.
 - Para mostrarlo **sin cuota**: `uv run python RA3/IL3.1/1-observability_tools.py`
   y `uv run pytest tests/ra3/test_observabilidad.py -q`. El recorrido completo
   está en [RA3/README.md](RA3/README.md#demostrarlo-en-casa).
@@ -129,7 +130,7 @@ Cómo repetirla en casa: [RA3/README.md](RA3/README.md#demostrarlo-en-casa).
 | Qué | Estado |
 |---|---|
 | Instalación desde cero (`git clone` + `uv sync` + verificación) | ✅ Probado en agosto 2026, ~3 min. No se repitió el 27 oct. |
-| Tests (despliegue + observabilidad IL3.1/IL3.2 + calculadora y rate limit de IL3.3) | ✅ 73 pasando + 6 `xfailed` (evasiones abiertas a propósito) |
+| Tests (despliegue + observabilidad IL3.1/IL3.2 + calculadora y rate limit de IL3.3) | ✅ 83 pasando, sin `xfailed` (3 nov 2026) |
 | `scripts/validate_repo.py` | ✅ El 27 oct. Antes fallaba por salidas guardadas |
 | Scripts `.py` | ✅ Todos compilan; los de simulación de RA3, ejecutables sin key |
 | Notebooks contra Groq | ✅ Corrida de agosto 2026. El 27 oct **no** se reejecutaron (cuota) |

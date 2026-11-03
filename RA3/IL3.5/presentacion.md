@@ -29,9 +29,9 @@ Qué señalar, en este orden:
 2. El correo no está en la respuesta. Sale `CORREO_ELECTRONICO_REDACTADO`.
 3. `bloqueados` subió. Ese es el tablero de abusos. Latencia y tokens siguen
    siendo el JSON de IL3.1; este endpoint no los trae.
-4. El filtro deja pasar otro idioma, base64 y una paráfrasis. Esos son los
-   6 `xfailed` de `tests/deploy/test_guardrails_evasion.py`. Se dicen en voz
-   alta; no se esconden.
+4. El filtro decodifica base64, rot13 y letras separadas. Sigue sin ver
+   una instrucción metida en un documento y una paráfrasis que no esté
+   escrita. Eso se dice en voz alta.
 
 Cómo levantar la API está en `RA3/README.md`, sección "Demostrarlo en casa".
 
@@ -61,33 +61,17 @@ avisar certificado no confiable: Caddy firma uno propio. Se dice antes de
 proyectar.
 
 ## 5. OWASP, con el año escrito
-La lista vigente es la **2026** (publicada a comienzos de agosto de 2026).
-El número cambia entre ediciones. Se cita `LLM06:2026`, no "LLM04 = DoS".
+La lista vigente es la **2026**. El número cambia entre ediciones. El mapa
+completo —diez de LLM y diez de agentes, cada uno con estado y ejemplo— está
+en `mapa-owasp-2026.md`. Se corre sin cuota:
 
-- **LLM01:2026 Prompt Injection** → validación del mensaje y del historial.
-- **LLM02:2026 Sensitive Information Disclosure** → PII redactada; el error
-  al cliente no lleva el traceback.
-- **LLM06:2026 Unbounded Consumption** → rate limit, tope de caracteres y
-  presupuesto acumulado del historial.
-- **LLM10:2026 Improper Output Handling** → la salida se muestra escapada.
+```bash
+uv run python RA3/IL3.5/3-ejemplos-owasp.py
+```
 
-Qué queda fuera del artefacto, y se dice en la defensa:
-
-- **Inyección indirecta.** La instrucción viene dentro de un documento, una
-  página o una tool. El guardrail mira lo que teclea el usuario.
-- **LLM03:2026 Excessive Agency.** Este backend no tiene tools. En cuanto
-  pueda borrar, pagar o enviar, el control es el permiso de la tool y una
-  persona confirmando.
-- **LLM09:2026 Vector and Embedding Weaknesses.** Quien inserta un documento
-  en el RAG escribe parte del prompt.
-- **LLM08:2026 Hidden Context Exposure.** El system prompt se puede extraer.
-  No lleva credenciales ni reglas de negocio.
-
-Lista de agentes, aparte de la de LLMs:
-[OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
-(ASI01–ASI10: secuestro de objetivo, abuso de tools, memoria envenenada,
-comunicación entre agentes). Esa lista conversa con IL3.3, no con el
-Security Group.
+El notebook `2-security-hardening-practice.ipynb` deja la misma tabla en la
+última celda, y las celdas de arriba ejecutan LLM01 y LLM02. IL3.1 a IL3.4
+marcan, en el título de cada sección, el código que esa sección hace visible.
 
 ## 6. Cierre de la unidad
 Una petición sana se mide (IL3.1), se abre en árbol (IL3.2), se rechaza si

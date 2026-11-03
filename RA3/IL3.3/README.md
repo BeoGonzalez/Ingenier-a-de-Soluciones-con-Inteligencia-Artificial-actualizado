@@ -81,8 +81,9 @@ historial de git); antes de hacer commit de un notebook, revisar sus `outputs`.
   la salida de una herramienta). La indirecta es la más peligrosa porque no pasa por el punto
   donde el filtro está mirando.
 - **Guardrails**: Barreras de protección para limitar acciones del agente. Los de este módulo
-  son **filtros por patrones**: sirven como primera capa y son **evadibles** (otro idioma,
-  sinónimos, codificación). Lo que realmente contiene el daño es el **mínimo privilegio** de
+  son **filtros por patrones**: la primera capa. Ya decodifican base64, rot13 y
+  letras separadas por puntos. Siguen abiertos un idioma que no esté escrito, hex
+  y una paráfrasis nueva. Lo que contiene el daño es el **mínimo privilegio** de
   las herramientas y la **aprobación humana** en acciones irreversibles.
 - **Sesgos**: Identificación y mitigación de sesgos en respuestas
 - **Privacidad**: Protección de datos sensibles en interacciones

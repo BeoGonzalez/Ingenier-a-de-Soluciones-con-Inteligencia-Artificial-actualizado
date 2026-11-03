@@ -20,7 +20,9 @@ El ADR de IL2.4 dice *qué* se despliega.
 | Archivo | Descripción |
 |---|---|
 | `1-deploy-aws-paso-a-paso.md` | Guía completa de despliegue en AWS Academy. |
-| `2-security-hardening-practice.ipynb` | Práctica: guardrails y ataque/mitigación de prompt injection. |
+| `2-security-hardening-practice.ipynb` | Práctica: LLM01, LLM02 y el mapa de los veinte ítems. |
+| `3-ejemplos-owasp.py` | Corre el mapa sin Groq. |
+| `mapa-owasp-2026.md` | Tabla LLM01–LLM10 y ASI01–ASI10, con estado. |
 | `checklist-seguridad-despliegue.md` | Checklist para la entrega/presentación. |
 | `presentacion.md` | Diapositivas de apoyo. |
 

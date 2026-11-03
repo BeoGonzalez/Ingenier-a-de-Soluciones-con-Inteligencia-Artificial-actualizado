@@ -231,12 +231,12 @@ class PromptGuard:
         return user_input
 ```
 
-> 🚨 **Un filtro por patrones NO resuelve la prompt injection. Sube el costo del ataque, nada
-> más.** Se evade con: otro idioma ("ignora tus instrucciones" vs `ignore previous`),
-> sinónimos ("olvida lo anterior", "a partir de ahora eres…"), separadores
-> (`i-g-n-o-r-e`), base64, o simplemente reformulando. OWASP lo dice explícitamente para
-> LLM01: *"is unclear if there are fool-proof methods of prevention for prompt injection"* —
-> las medidas **mitigan el impacto**, no eliminan la vulnerabilidad
+> 🚨 **Un filtro por patrones no cierra la prompt injection.** Este repo ya decodifica
+> base64, rot13 y letras separadas por puntos, y tiene escrita una frase en francés y
+> «caso omiso». Sigue pasando hex, el texto invertido, un idioma que no esté en la lista
+> y cualquier otra reformulación. OWASP lo dice para LLM01: *"is unclear if there are
+> fool-proof methods of prevention for prompt injection"* — las medidas **mitigan el
+> impacto**, no eliminan la vulnerabilidad
 > ([OWASP LLM01](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)).
 >
 > Por eso el filtro es **una capa**, no la defensa. Lo que de verdad contiene el daño:
@@ -339,15 +339,15 @@ registro: hora, motivo, texto ya redactado. No hace falta otra clase
 ## Slide 9: Lo que el filtro deja pasar
 **Título:** Decirlo en la defensa, con los tests al lado
 
-El guardrail es una lista de patrones. `tests/deploy/test_guardrails_evasion.py`
-marca como `xfailed` —a propósito— las evasiones que siguen abiertas:
+El guardrail decodifica base64, rot13 y letras separadas, y bloquea la frase
+en francés de la lista y la paráfrasis «caso omiso». `tests/deploy/test_guardrails_evasion.py`
+lo fija en verde. Sigue abierto:
 
-- otro idioma
-- base64
-- rot13
-- una paráfrasis
-- la instrucción deletreada
-- el system prompt resumido con otras palabras
+- un idioma que no esté escrito
+- hex y texto invertido
+- una paráfrasis distinta de las de la lista
+- la instrucción deletreada con guiones (`i-g-n-o-r-e`), que no es la de puntos
+- un resumen del system prompt que no junte brevedad, idioma y reglas
 
 Además, el filtro mira lo que teclea el usuario. No mira:
 
@@ -382,6 +382,7 @@ despliegue real se cierra.
 1. La key no se imprime. Si se filtró, se revoca en console.groq.com/keys.
 2. Inyección directa: span de validación en error, modelo sin llamar, `bloqueados` +1.
 3. Dato personal: redactado en respuesta y en log.
-4. El filtro es evadible. Los seis `xfailed` son la evidencia, no un fallo nuevo.
+4. El filtro decodifica los disfraces baratos. Hex, otro idioma no listado y
+   una paráfrasis nueva siguen abiertos. La inyección indirecta también.
 5. Tools y memoria se contienen con permisos y con una persona, no con regex.
 6. HTTPS y el Security Group son la clase siguiente.

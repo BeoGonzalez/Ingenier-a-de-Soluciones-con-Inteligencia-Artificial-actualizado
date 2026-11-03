@@ -23,18 +23,25 @@ auditable (cualquiera puede leer las listas y saber qué bloquea). Sirve para:
 
 - Paráfrasis y sinónimos: "haz caso omiso de lo que te dijeron antes".
 - Idiomas fuera de español/inglés: "oublie les instructions précédentes".
-- Codificaciones: base64, rot13, hex, texto invertido, letra por letra.
+- Hex, texto invertido y un idioma que no esté en las listas.
+- Una paráfrasis que no usa las frases ya escritas ("caso omiso" sí está).
 - Prompt injection **indirecta**: instrucciones escondidas en un documento,
   un correo o una web que el agente lea más tarde. El filtro solo ve lo que
   escribe el usuario.
+
+Antes de comparar, el filtro decodifica tres disfraces baratos: un bloque
+base64, rot13 y letras separadas por puntos (`i.g.n.o.r.a`). Eso cierra
+evasiones mecánicas. No entiende el texto.
 
 Un filtro léxico no puede cerrar eso: la lista de formas de decir "ignora tus
 instrucciones" es infinita, y la de textos benignos que contienen esas mismas
 palabras también. Subir la agresividad del filtro no lo arregla, solo cambia
 falsos negativos por falsos positivos (ver `EXCEPCIONES_BENIGNAS` más abajo:
 "arma" sin límites de palabra bloqueaba *farmacia*, *alarma* y *karma*).
-`tests/deploy/test_guardrails_evasion.py` deja esas fugas documentadas con
-`pytest.mark.xfail`, para que se vean en cada ejecución de la suite.
+`tests/deploy/test_guardrails_evasion.py` fija las evasiones mecánicas que
+sí se bloquean (base64, rot13, letras separadas, una frase en francés, la
+paráfrasis "caso omiso"). Lo que sigue abierto no lleva `xfail`: es la
+inyección indirecta y cualquier reformulación que no esté escrita.
 
 **Defensa en profundidad** — lo que hace falta de verdad en producción:
 
@@ -46,6 +53,8 @@ falsos negativos por falsos positivos (ver `EXCEPCIONES_BENIGNAS` más abajo:
 4. Observabilidad (RA3.1 / RA3.2): trazas y métricas para detectar el abuso
    que el filtro dejó pasar. Se asume que algo pasará.
 """
+import base64
+import codecs
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -100,8 +109,8 @@ def normalizar(texto: str) -> str:
     saneado): solo para DECIDIR si se bloquea.
 
     Ojo con lo que esto es: sube el listón, no cierra el problema. Sigue
-    pasando base64, rot13, un sinónimo o la misma frase en otro idioma. Ver el
-    docstring del módulo.
+    pasando hex, texto invertido, un idioma que no esté en las listas o un
+    sinónimo que no hayamos escrito. Ver el docstring del módulo.
     """
     # 1) NFKC unifica variantes de compatibilidad: ﬁ→fi, ８→8, ｉ→i, ⅰ→i…
     t = unicodedata.normalize("NFKC", texto)
@@ -194,13 +203,13 @@ PATRONES_PII: tuple[tuple[str, re.Pattern], ...] = (
 # Determinantes/adjetivos que pueden colarse entre el verbo y el objeto:
 # "ignora LAS instrucciones", "ignora TUS instrucciones", "forget ALL your rules".
 _RELLENO = (
-    r"(?:\s+(?:de|del|el|la|los|las|un|una|tu|tus|su|sus|mi|mis|todo|toda|todos"
+    r"(?:\s+(?:de|del|el|la|los|las|les|des|mes|tes|ces|un|una|tu|tus|su|sus|mi|mis|todo|toda|todos"
     r"|todas|anterior|anteriores|previo|previa|previos|previas|the|a|an|your|my"
     r"|all|any|previous|prior|above|earlier|first|initial|of))*"
 )
 _VERBOS_IGNORAR = (
-    r"(?:ignora[rs]?|ignore[sd]?|olvida[rt]?e?|olvidate|omite|omitir|descarta"
-    r"|descartar|saltate|disregard|forget|bypass|override)"
+    r"(?:ignora[rs]?|ignore[sd]?|ignorez|olvida[rt]?e?|olvidate|omite|omitir|descarta"
+    r"|descartar|saltate|oublie[rz]?|oublier|disregard|forget|bypass|override)"
 )
 _VERBOS_REVELAR = (
     r"(?:revela(?:me)?|muestra(?:me)?|dime|imprime|repite|escribe|comparte"
@@ -249,6 +258,7 @@ PATRONES_INJECTION = (
     "developer mode",
     "sin restricciones ni filtros",
     "jailbreak",
+    "caso omiso",
 )
 _INJECTION_LITERALES = tuple(_regex_frase(f) for f in PATRONES_INJECTION)
 
@@ -308,12 +318,52 @@ def sanitizar_pii(texto: str) -> str:
     return limpio
 
 
-def hay_injection(texto: str) -> bool:
-    """¿El texto parece un intento de prompt injection?"""
-    normalizado = normalizar(texto)
+def _parece_injection(normalizado: str) -> bool:
+    """Compara un texto ya normalizado contra las listas. No decodifica."""
     if any(p.search(normalizado) for p in PATRONES_INJECTION_REGEX):
         return True
     return any(p.search(normalizado) for p in _INJECTION_LITERALES)
+
+
+def _juntar_letras(texto: str) -> str:
+    """i.g.n.o.r.a → ignora. Solo letras sueltas separadas por puntos."""
+
+    def unir(coincidencia: re.Match) -> str:
+        return coincidencia.group(0).replace(".", "")
+
+    return re.sub(r"\b(?:[a-z]\.){2,}[a-z]\b", unir, texto)
+
+
+def _textos_base64(texto: str):
+    """Decodifica bloques que parecen base64. Ignora lo que no es UTF-8."""
+    for coincidencia in re.finditer(r"[A-Za-z0-9+/]{16,}={0,2}", texto):
+        blob = coincidencia.group(0)
+        relleno = "=" * ((-len(blob)) % 4)
+        try:
+            crudo = base64.b64decode(blob + relleno, validate=False)
+            decodificado = crudo.decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if decodificado.strip():
+            yield decodificado
+
+
+def hay_injection(texto: str) -> bool:
+    """¿El texto parece un intento de prompt injection?
+
+    Mira el texto normalizado y tres disfraces baratos: letras separadas por
+    puntos, rot13 y un bloque base64. No recorre hex ni texto invertido, y no
+    entiende una paráfrasis que no esté en las listas.
+    """
+    normalizado = normalizar(texto)
+    if _parece_injection(normalizado):
+        return True
+    junto = _juntar_letras(normalizado)
+    if junto != normalizado and _parece_injection(junto):
+        return True
+    if _parece_injection(normalizar(codecs.encode(normalizado, "rot13"))):
+        return True
+    return any(_parece_injection(normalizar(decodificado)) for decodificado in _textos_base64(texto))
 
 
 def es_no_etico(texto: str) -> bool:
@@ -365,21 +415,30 @@ def validar_conversacion(turnos: Sequence[str]) -> ResultadoValidacion:
 
 
 def hay_fuga_de_instrucciones(salida: str, system_prompt: str, palabras: int = 6) -> bool:
-    """¿La respuesta repite un trozo literal del system prompt?
+    """¿La respuesta repite un trozo literal del system prompt, o lo parafrasea?
 
-    Guardrail de SALIDA. Comparamos ventanas de `palabras` palabras
-    normalizadas: si el modelo devuelve seis palabras seguidas de sus propias
-    instrucciones, lo más probable es que se las hayan sacado.
+    Guardrail de SALIDA. Dos comprobaciones:
 
-    Limitación evidente: no detecta un RESUMEN ni una paráfrasis del prompt
-    ("me dijeron que fuera breve y no revelara mis reglas"). Otra vez, el techo
-    del enfoque léxico.
+    1. Ventanas de `palabras` palabras normalizadas: si el modelo devuelve
+       seis palabras seguidas de sus propias instrucciones, se las sacaron.
+    2. Tres ideas a la vez (brevedad, idioma, reglas) y una negativa del tipo
+       "no contar" / "no revelar". Cierra el resumen obvio. Una reformulación
+       que no use esas palabras sigue sin detectarse.
     """
     referencia = normalizar(system_prompt).split()
-    if len(referencia) < palabras:
-        return False
     texto = normalizar(salida)
-    return any(
+    if len(referencia) >= palabras and any(
         " ".join(referencia[i : i + palabras]) in texto
         for i in range(len(referencia) - palabras + 1)
+    ):
+        return True
+
+    vocabulario = set(re.findall(r"[a-z]+", texto))
+    grupos = (
+        {"breve", "conciso", "concisa", "sucinto", "sucinta"},
+        {"espanol", "castellano"},
+        {"reglas", "regla", "instrucciones", "instruccion"},
     )
+    aciertos = sum(1 for grupo in grupos if vocabulario & grupo)
+    niega = any(pista in texto for pista in ("no contar", "sin revel", "no revel"))
+    return aciertos >= 3 and niega

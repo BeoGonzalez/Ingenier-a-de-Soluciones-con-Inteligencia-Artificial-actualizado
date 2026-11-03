@@ -55,7 +55,7 @@ Qué tiene que verse:
 
 | Comando | Resultado sano |
 |---|---|
-| `pytest tests/` | Todo `passed`. Hay **6 `xfailed`**: son evasiones que el filtro deja abiertas a propósito (otro idioma, base64, paráfrasis). No son fallos nuevos. Están en `tests/deploy/test_guardrails_evasion.py`. |
+| `pytest tests/` | Todo `passed`. El filtro decodifica base64, rot13 y letras separadas, y bloquea la frase en francés de la lista y la paráfrasis «caso omiso». Sigue abierto lo que no está escrito: inyección indirecta, hex, texto invertido y otra reformulación. |
 | `validate_repo.py` | Las cinco líneas en `OK`. Si marca una salida de notebook, esa celda guardó un error o una credencial: bórrala antes de hacer commit. |
 | Los tres `.py` | Imprimen el reporte de métricas, una traza JSON y el demo de guardrails. No llaman al modelo. |
 

@@ -20,7 +20,7 @@ if "historial" not in st.session_state:
 
 for turno in st.session_state.historial:
     with st.chat_message(turno["role"]):
-        # Escapamos la salida del modelo: nunca renderizar HTML crudo (LLM02).
+        # Escapamos la salida del modelo: nunca renderizar HTML crudo (LLM10:2026).
         st.markdown(html.escape(turno["content"]))
 
 pregunta = st.chat_input("Escribe tu pregunta…")

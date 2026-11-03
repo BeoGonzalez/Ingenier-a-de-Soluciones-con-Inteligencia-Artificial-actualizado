@@ -5,8 +5,7 @@
 Sin AWS y sin gastar tokens. El detalle y los `curl` están en
 [RA3/README.md](../README.md#demostrarlo-en-casa).
 
-- [ ] `uv run pytest tests/ -q` termina sin `failed`. Los `xfailed` son las
-      evasiones que el filtro no cierra (ver `tests/deploy/test_guardrails_evasion.py`).
+- [ ] `uv run pytest tests/ -q` termina sin `failed` ni `xfailed`.
 - [ ] `uv run python scripts/validate_repo.py` deja las cinco comprobaciones en `OK`.
 - [ ] `uv run python RA3/IL3.1/1-observability_tools.py` muestra latencia, tokens
       y tasa de error.
@@ -33,9 +32,10 @@ Sin AWS y sin gastar tokens. El detalle y los `curl` están en
 - [ ] La salida del modelo se muestra escapada (sin HTML crudo).
 - [ ] PII redactada en respuestas y logs.
 - [ ] Los errores no exponen trazas internas al cliente.
-- [ ] Sé explicar **qué NO cubre** mi guardrail: es un filtro por patrones, evadible con otro
-      idioma o codificación, y **no ve la inyección indirecta** (la que llega dentro de un
-      documento, una web o la salida de una herramienta).
+- [ ] Sé explicar **qué no cubre** el guardrail: hex, texto invertido, un idioma
+      que no esté en la lista, una paráfrasis nueva, y la **inyección indirecta**
+      (la que llega dentro de un documento, una web o la salida de una herramienta).
+      Base64, rot13 y letras separadas por puntos sí se decodifican.
 - [ ] Si mi agente tiene herramientas: cada una con el **mínimo permiso** necesario, y las
       acciones irreversibles (borrar, pagar, enviar) piden **confirmación humana**.
 - [ ] `/metrics` es público solo a propósito (demo de observabilidad); en

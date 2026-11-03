@@ -66,9 +66,9 @@ porque los agentes ya son LangGraph y la traza de práctica se arma a mano.
 3. **IL3.3 — el ataque tiene que aparecer en esa traza.**
    Inyección directa: el span `validacion_entrada` queda en error y **no** se
    llama al modelo. Correo en el mensaje: el log guarda
-   `CORREO_ELECTRONICO_REDACTADO`, no la dirección. El filtro es por patrones:
-   otro idioma, base64 o una paráfrasis lo evaden (los 6 `xfailed` de
-   `tests/deploy/test_guardrails_evasion.py` son esa frase, en código).
+   `CORREO_ELECTRONICO_REDACTADO`, no la dirección. El filtro decodifica
+   base64, rot13 y letras separadas. Sigue sin ver un idioma que no esté
+   en la lista, hex y una paráfrasis distinta de «caso omiso».
    Inyección indirecta (viene dentro de un documento o de una tool), tools de
    más y un `thread_id` envenenado no los ve el regex: ahí mandan el mínimo
    privilegio y la confirmación humana. Sesgo y transparencia son ética; van

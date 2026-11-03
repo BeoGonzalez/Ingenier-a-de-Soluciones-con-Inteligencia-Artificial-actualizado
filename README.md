@@ -237,7 +237,7 @@ Recuerda la diferencia entre los dos verificadores:
 | `scripts/verify_env.py` | Que todas las librerías del curso importen | No |
 | `scripts/verify_groq.py` | Que la API key, Groq y los embeddings funcionen | Sí, muy poca |
 | `scripts/validate_repo.py` | Notebooks con formato válido, salidas sin errores ni API keys, sin referencias a GitHub Models, `requirements.txt` alineado con `pyproject.toml` y scripts que compilan (lo corre la CI; `--fix` repara el formato de los notebooks) | No |
-| `uv run pytest tests/` | Observabilidad (IL3.1, IL3.2), guardrails, API y configuración de Caddy. Los `xfailed` son evasiones abiertas a propósito | No |
+| `uv run pytest tests/` | Observabilidad (IL3.1, IL3.2), guardrails, API y configuración de Caddy. Tiene que terminar sin `failed` ni `xfailed` | No |
 | `scripts/e2e.py` | Ejecuta de punta a punta todos los notebooks y scripts (o una carpeta: `scripts/e2e.py RA2/IL2.1`) y marca también los errores que un notebook captura e imprime | Sí, bastante: pensado para el docente |
 
 Para mostrar RA3 en casa (métricas, trazas y la API sin Docker) el paso a paso
